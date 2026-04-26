@@ -10,10 +10,15 @@
  * @pre El servicio de PostgreSQL debe estar activo y accesible.
  * @post Si la conexión falla, el script termina su ejecución.
  */
-function pg_conectar($host, $dbname, $user)
+function pg_conectar($host, $dbname, $user, $password = "")
 /*--------------------------------------------------------------------*/
 {
-    $conn = pg_connect("host=$host dbname=$dbname user=$user");
+    $conn_string = "host=$host dbname=$dbname user=$user";
+    if ($password != "") {
+        $conn_string .= " password=$password";
+    }
+    
+    $conn = pg_connect($conn_string);
     if (!$conn)
         die("Error de conexión: ");//.pg_last_error());
 
@@ -56,67 +61,67 @@ function procesar_query($sentencia, $conexion)
     }
     return (object) array('cantidad' => $Qregistros, 'datos' => $retorno);
 }
---GA--/*------------------------------------------------------------------*/
---GA--/**
---GA-- * @brief Sanitiza un valor de entrada para evitar ataques XSS o inyecciones.
---GA-- * @param mixed $valor Valor a sanitizar (entero o cadena).
---GA-- * @return mixed Valor sanitizado.
---GA-- * @pre Ninguna.
---GA-- * @post Devuelve el texto sin etiquetas peligrosas o el numérico puro.
---GA-- */
---GA--function fn_sanitizar($valor)
---GA--/*--------------------------------------------------------------------*/
---GA--{
---GA--    $retorno = null;
---GA--    if (is_numeric($valor)) {
---GA--        $retorno = (int) $valor;
---GA--    } else {
---GA--        $retorno = htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
---GA--    }
---GA--    return $retorno;
---GA--}
---GA--
---GA--/*------------------------------------------------------------------*/
---GA--/**
---GA-- * @brief Activa la sesión y recupera el token único (creándolo si no existe).
---GA-- * @return string Token de 64 caracteres.
---GA-- * @pre Ninguna.
---GA-- * @post Genera un token nuevo en variable de sesión si no existe.
---GA-- */
---GA--function fn_cargar_token_activo()
---GA--/*--------------------------------------------------------------------*/
---GA--{
---GA--    $retorno = "";
---GA--    if (session_status() === PHP_SESSION_NONE) {
---GA--        session_start();
---GA--    }
---GA--    if (empty($_SESSION['app_token'])) {
---GA--        $_SESSION['app_token'] = bin2hex(random_bytes(32));
---GA--    }
---GA--    $retorno = $_SESSION['app_token'];
---GA--    return $retorno;
---GA--}
---GA--
---GA--/*------------------------------------------------------------------*/
---GA--/**
---GA-- * @brief Verifica la validez de un token entregado por $_REQUEST.
---GA-- * @param string $token_recibido El token capturado.
---GA-- * @return bool Validez de la comparación.
---GA-- * @pre La sesión debe estar iniciada.
---GA-- * @post Retorna true o mata la ejecución con HTTP 403 si falla.
---GA-- */
---GA--function fn_validar_token($token_recibido)
---GA--/*--------------------------------------------------------------------*/
---GA--{
---GA--    $retorno = false;
---GA--    $token_real = fn_cargar_token_activo();
---GA--    if ($token_recibido === $token_real) {
---GA--        $retorno = true;
---GA--    } else {
---GA--        http_response_code(403);
---GA--        die(json_encode(["error" => "Token de seguridad invalido. Acceso denegado."]));
---GA--    }
---GA--    return $retorno;
---GA--}
---GA--
---GA--?>
+/*------------------------------------------------------------------*/
+/**
+ * @brief Sanitiza un valor de entrada para evitar ataques XSS o inyecciones.
+ * @param mixed $valor Valor a sanitizar (entero o cadena).
+ * @return mixed Valor sanitizado.
+ * @pre Ninguna.
+ * @post Devuelve el texto sin etiquetas peligrosas o el numérico puro.
+ */
+function fn_sanitizar($valor)
+/*--------------------------------------------------------------------*/
+{
+    $retorno = null;
+    if (is_numeric($valor)) {
+        $retorno = (int) $valor;
+    } else {
+        $retorno = htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+    }
+    return $retorno;
+}
+
+/*------------------------------------------------------------------*/
+/**
+ * @brief Activa la sesión y recupera el token único (creándolo si no existe).
+ * @return string Token de 64 caracteres.
+ * @pre Ninguna.
+ * @post Genera un token nuevo en variable de sesión si no existe.
+ */
+function fn_cargar_token_activo()
+/*--------------------------------------------------------------------*/
+{
+    $retorno = "";
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (empty($_SESSION['app_token'])) {
+        $_SESSION['app_token'] = bin2hex(random_bytes(32));
+    }
+    $retorno = $_SESSION['app_token'];
+    return $retorno;
+}
+
+/*------------------------------------------------------------------*/
+/**
+ * @brief Verifica la validez de un token entregado por $_REQUEST.
+ * @param string $token_recibido El token capturado.
+ * @return bool Validez de la comparación.
+ * @pre La sesión debe estar iniciada.
+ * @post Retorna true o mata la ejecución con HTTP 403 si falla.
+ */
+function fn_validar_token($token_recibido)
+/*--------------------------------------------------------------------*/
+{
+    $retorno = false;
+    $token_real = fn_cargar_token_activo();
+    if ($token_recibido === $token_real) {
+        $retorno = true;
+    } else {
+        http_response_code(403);
+        die(json_encode(["error" => "Token de seguridad invalido. Acceso denegado."]));
+    }
+    return $retorno;
+}
+
+?>
